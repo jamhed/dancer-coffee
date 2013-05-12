@@ -1,0 +1,38 @@
+#!/bin/bash
+
+COFFEE="coffee -bc -o"
+
+
+# complie everything on startup
+find -L site/cs -name '*.cs' | while read f
+do
+   P=`dirname $f`
+   F=`basename $f`
+   TARGET=`echo $P | sed -r 's/\bcs\b/js/'`
+   echo $COFFEE $TARGET $P/$F
+   mkdir -p $TARGET
+   $COFFEE $TARGET $P/$F
+done
+
+WATCH="cs/"
+for SYMLINK in `find cs/ -type l`
+do
+   REF=cs/`readlink $SYMLINK`
+   WATCH="${WATCH} $REF"
+done
+echo $WATCH
+
+
+while true
+do
+   inotifywait -m -q -e modify -r $WATCH | while read P E F
+   do
+   #   echo P:$P E:$E F:$F
+      if [[ "$F" = *.cs ]] ; then
+         TARGET=site/`echo $P | sed -r 's/^.*\bcs\b/js/'`
+         echo $COFFEE -o $TARGET $P$F
+         mkdir -p $TARGET
+         $COFFEE $TARGET $P$F
+      fi
+   done
+done
